@@ -26,4 +26,6 @@ tee payload.json <<EOF
 EOF
 
 curlvault --request PUT --data @payload.json http://127.0.0.1:8200/v1/sys/config/cors
+rm -f payload.json
+
 curlvault http://127.0.0.1:8200/v1/sys/config/cors

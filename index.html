@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Upload to vault</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <style>
+        .lds-dual-ring {
+            display: inline-block;
+            width: 128px;
+            height: 128px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 92px;
+            height: 92px;
+            margin: 1px;
+            border-radius: 50%;
+            border: 5px solid #888aa5;
+            border-color: #888aa5 transparent #888aa5 transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col align-self-center">
+
+                <div style="text-align: center;">
+                    <div style="text-align: center; margin-top: 30px">Check if the spin freezes:</div>
+                    <div class="lds-dual-ring"></div>
+                </div>
+
+
+                <div>
+                    <label>Vault Root: </label>
+                    <input type="text" class="form-control" id="vault_root" name="vault_root"
+                        value="http://127.0.0.1:8200" />
+                </div>
+                <div>
+                    <label>Vault Token: </label>
+                    <input type="text" class="form-control" id="vault_token" name="vault_token"
+                        value="xDNq4P1jJYF9Gm60GekUh8TW" />
+                </div>
+                <div>
+                    <label>Secret Path: </label>
+                    <input type="text" class="form-control" id="secret_path" name="secret_path"
+                        value="customer/binary" style="font-weight: bold" />
+                </div>
+
+                <div>
+                    <label>Select file:</label>
+                    <input type="file" class="form-control" id="fileinput" name="fileinput" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+        // Select your input type file and store it in a variable
+        const input = document.getElementById('fileinput');
+
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        // This will upload the file after having read it
+        const upload = (file) => {
+
+            const vaultRoot = document.getElementById('vault_root').value;
+            const vaultToken = document.getElementById('vault_token').value;
+            const secretPath = document.getElementById('secret_path').value;
+
+            const id = (new Date().getTime());
+            const timerID = {
+                base64: `base64-${id}`,
+                payload: `payload-${id}`,
+                upload: `upload-${id}`
+            }
+            console.time(timerID.base64);
+            toBase64(file).then(encodedFile => {
+                console.timeLog(timerID.base64)
+
+                console.time(timerID.payload);
+                const request = {
+                    method: 'POST', headers: { "Content-Type": "application/json", "X-Vault-Token": vaultToken },
+                    body: '{"data":{"content":"' + encodedFile + '"}}'
+                }
+                console.timeLog(timerID.payload)
+
+                console.time(timerID.upload);
+                fetch(vaultRoot + "/v1/secret/data/" + secretPath, request)
+                    .then(
+                        response => response.json() // if the response is a JSON object
+                    ).then(success => {
+                        console.timeLog(timerID.upload)
+                        console.info(success) // Handle the success response object
+                    }).catch(error => {
+                        console.timeLog(timerID.upload)
+                        console.warn(error) // Handle the error response object
+                    });
+            });
+        };
+
+        // Event handler executed when a file is selected
+        const onSelectFile = () => upload(input.files[0]);
+
+        // Add a listener on your input
+        // It will be triggered when a file will be selected
+        input.addEventListener('change', onSelectFile, false);
+
+    </script>
+</body>
+
+</html>
